@@ -13,11 +13,14 @@ API_BASE_URL = "https://fraud-detection-api-u8hg.onrender.com"
 
 st.set_page_config(page_title="Fraud Detection System", layout="wide")
 
-# -------------------------------
-# CUSTOM CSS
-# -------------------------------
+# ---------- CUSTOM CSS ----------
 st.markdown("""
 <style>
+body {
+    background-color: #f5f7fa;
+}
+
+/* Metric Cards */
 .metric-box {
     background: #ffffff;
     padding: 20px;
@@ -25,45 +28,79 @@ st.markdown("""
     text-align: center;
     box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
 }
+
+/* Sidebar Analyze Button ALWAYS BLUE */
+section[data-testid="stSidebar"] .stButton > button {
+    background-color:#2563eb;
+    color:white;
+    border:none;
+    font-weight:600;
+    border-radius:8px;
+}
+
+/* Toggle Button Base */
+div.stButton > button {
+    height: 45px;
+    border-radius: 10px;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------------
-# HEADER
-# -------------------------------
+# ---------- HEADER ----------
 st.markdown("## 🛡 Fraud Detection System")
 st.caption("Real-time transaction analysis powered by AI")
 
-# -------------------------------
-# SESSION STATE
-# -------------------------------
+# ---------- SESSION STATE ----------
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "Prediction"
 
 if "result" not in st.session_state:
     st.session_state.result = None
 
-if "latest_input" not in st.session_state:
-    st.session_state.latest_input = {}
+# ---------- TOGGLE HANDLERS ----------
+def set_prediction():
+    st.session_state.active_tab = "Prediction"
 
-# -------------------------------
-# TAB SWITCH
-# -------------------------------
-col1, col2 = st.columns(2)
+def set_insights():
+    st.session_state.active_tab = "Insights"
+
+# ---------- TOGGLE UI ----------
+col1, col2 = st.columns(2, gap="small")
 
 with col1:
-    if st.button("Prediction"):
-        st.session_state.active_tab = "Prediction"
+    st.button("Prediction", on_click=set_prediction, use_container_width=True)
 
 with col2:
-    if st.button("Insights"):
-        st.session_state.active_tab = "Insights"
+    st.button("Insights", on_click=set_insights, use_container_width=True)
 
+
+# Dynamic styling for toggle
+if st.session_state.active_tab == "Prediction":
+    pred_style = "background-color:#2563eb;color:white;border:none;"
+    ins_style = "background-color:#f3f4f6;color:black;"
+    exp_style = "background-color:#f3f4f6;color:black;"
+
+elif st.session_state.active_tab == "Insights":
+    pred_style = "background-color:#f3f4f6;color:black;"
+    ins_style = "background-color:#2563eb;color:white;border:none;"
+    exp_style = "background-color:#f3f4f6;color:black;"
+
+
+st.markdown(f"""
+<style>
+div[data-testid="column"]:nth-of-type(1) div.stButton > button {{
+    {pred_style}
+}}
+div[data-testid="column"]:nth-of-type(2) div.stButton > button {{
+    {ins_style}
+}}
+</style>
+""", unsafe_allow_html=True)
 st.markdown("---")
 
-# -------------------------------
-# SIDEBAR INPUT
-# -------------------------------
+# ---------- SIDEBAR ----------
 st.sidebar.header("Transaction Analysis")
 
 mode = st.sidebar.radio(
@@ -127,6 +164,12 @@ if st.session_state.result:
     # =============================
     if st.session_state.active_tab == "Prediction":
 
+        # GET AI NOTE
+        ai_note = result.get("ai_investigation_note", "No explanation available")
+
+        # FORMAT MESSAGE
+        message = ai_note.replace(", ", ". ")
+
         # ALERT
         if risk == "HIGH":
             st.error("🚨 HIGH Risk Transaction")
@@ -141,6 +184,12 @@ if st.session_state.result:
         col1.markdown(f"<div class='metric-box'><h4>Fraud Probability</h4><h1>{percent}%</h1></div>", unsafe_allow_html=True)
         col2.markdown(f"<div class='metric-box'><h4>Risk Level</h4><h1>{risk}</h1></div>", unsafe_allow_html=True)
         col3.markdown(f"<div class='metric-box'><h4>Action</h4><h2>{action}</h2></div>", unsafe_allow_html=True)
+
+        # AI EXPLANATION BOX
+        st.markdown("### AI Investigation Insight")
+
+        st.info(message)
+        st.markdown("---")
 
         # GAUGE
         st.subheader("Fraud Risk Meter")
