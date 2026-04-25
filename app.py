@@ -124,11 +124,23 @@ if mode == "Manual Input":
         }
 
         try:
-            response = requests.post(f"{API_BASE_URL}/predict", json=data)
-            st.session_state.result = response.json()
-            st.session_state.latest_input = data
-        except:
-            st.error("❌ API Connection Failed")
+            response = requests.post(
+                f"{API_BASE_URL}/predict",
+                json=data,
+                timeout=10   # ✅ important
+            )
+
+            if response.status_code == 200:
+                st.session_state.result = response.json()
+                st.session_state.latest_input = data
+            else:
+                st.error(f"❌ API Error: {response.text}")
+
+        except requests.exceptions.Timeout:
+            st.error("⏳ Server is waking up... try again in 5 seconds")
+
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
 # -------------------------------
 # LIVE MODE
@@ -137,15 +149,19 @@ if mode == "Live Transactions":
     st_autorefresh(interval=5000, key="refresh")
 
     try:
-        response = requests.get(f"{API_BASE_URL}/random-transaction")
-        data = response.json()
+        response = requests.get(f"{API_BASE_URL}/random-transaction", timeout=10)
 
-        if "analysis" in data:
-            st.session_state.result = data["analysis"]
-            st.session_state.latest_input = data["input"]
+        if response.status_code == 200:
+            data = response.json()
 
-    except:
-        st.error("❌ API Connection Failed")
+            if "analysis" in data:
+                st.session_state.result = data["analysis"]
+                st.session_state.latest_input = data["input"]
+        else:
+            st.error("API Error")
+
+    except requests.exceptions.Timeout:
+        st.warning("⏳ Waiting for server...")
 
 # -------------------------------
 # DISPLAY RESULTS
